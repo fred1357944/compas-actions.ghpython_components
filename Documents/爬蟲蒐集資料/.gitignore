@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+fubon-env/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 資料檔案（不追蹤爬取的資料）
+*.xlsx
+*.xls
+*.csv
+
+# 日誌與快照（可選擇性保留）
+_logs/
+_snapshots/
+
+# 暫存檔案
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 測試檔案
+test_*.py
+*_test.py
+
+# 個人設定
+config.ini
+settings.json
+.env
