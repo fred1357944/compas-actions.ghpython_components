@@ -109,14 +109,7 @@ def find_local_gh_io():
 
 def bitmap_from_image_path(image_path):
     with open(image_path, "rb") as imageFile:
-        # Ensure img_string is a string, not a bytes object
-        img_string = base64.b64encode(imageFile.read())
-        if isinstance(img_string, bytes):
-            img_string = img_string.decode()
-
-        # Now you can pass img_string to the FromBase64String method
-        return System.Convert.FromBase64String(img_string)
-    # return System.Convert.FromBase64String(img_string)
+        return imageFile.read()
 
 
 def validate_source_bundle(source):
@@ -250,7 +243,6 @@ def create_ghuser_component(source, target, version=None, prefix=None):
 
     prefix = prefix or ""
 
-    # SCRIPT_COMPONENT_GUID = System.Guid("c9b2d725-6f87-4b07-af90-bd9aefef68eb")
     root = GH_LooseChunk("UserObject")
     root.SetGuid("BaseID", SCRIPT_COMPONENT_GUID)
     root.SetString("Name", prefix + data["name"])
@@ -270,8 +262,9 @@ def create_ghuser_component(source, target, version=None, prefix=None):
     try:
         bitmap_icon = System.Drawing.Bitmap.FromStream(System.IO.MemoryStream(icon))
         ghpython_root.SetDrawingBitmap("IconOverride", bitmap_icon)
-    except Exception as e:
-        print(f"Warning: Failed to set IconOverride: {e}")
+    except Exception:
+        # Silently fail on platforms where System.Drawing is not fully supported (e.g. headless macOS)
+        pass
     ghpython_root.SetBoolean("UsingLibraryInputParam", False)
     ghpython_root.SetBoolean("UsingScriptInputParam", False)
     ghpython_root.SetBoolean("UsingStandardOutputParam", False)
@@ -413,15 +406,8 @@ if __name__ == "__main__":
 
     # On macOS, GH_IO depends on System.Drawing.Common which might not be loaded automatically
     if platform.system() == "Darwin":
-        # Try to find System.Drawing.Common.dll in Resources folder
-        # gh_io is usually .../Resources/ManagedPlugIns/GrasshopperPlugin.rhp/GH_IO.dll
+        # GH_IO is usually .../Resources/ManagedPlugIns/GrasshopperPlugin.rhp/GH_IO.dll
         # We want .../Resources/System.Drawing.Common.dll
-        
-        # Go up 3 levels from dll file: 
-        # 1. dir of dll (GrasshopperPlugin.rhp)
-        # 2. ManagedPlugIns
-        # 3. Resources
-        
         resources_dir = os.path.dirname(os.path.dirname(os.path.dirname(gh_io)))
         
         # Add Resources directory to sys.path
@@ -430,22 +416,9 @@ if __name__ == "__main__":
 
         sdc_path = os.path.join(resources_dir, "System.Drawing.Common.dll")
         if os.path.exists(sdc_path):
-            print(f"Loading System.Drawing.Common from: {sdc_path}")
-            try:
-                System.Reflection.Assembly.LoadFrom(sdc_path)
-                print("Loaded System.Drawing.Common via Reflection")
-            except Exception as e:
-                print(f"Failed to load System.Drawing.Common via Reflection: {e}")
             clr.AddReference(sdc_path)
 
-    # Load via Reflection first to ensure it's in the context
-    try:
-        System.Reflection.Assembly.LoadFrom(gh_io)
-    except Exception as e:
-        print(f"Warning: Failed to load GH_IO via Reflection: {e}")
-
     # Load the assembly by name once the path is added
-    # Use name instead of path, as path might confuse pythonnet module resolution
     clr.AddReference("GH_IO")
 
     # Import GH_IO module at global level
@@ -454,10 +427,6 @@ if __name__ == "__main__":
         print("Successfully imported GH_IO")
     except ImportError as e:
         print(f"Failed to import GH_IO: {e}")
-        print("Loaded Assemblies:")
-        for asm in System.AppDomain.CurrentDomain.GetAssemblies():
-            if "GH_IO" in asm.FullName:
-                print(f" - {asm.FullName} (Location: {asm.Location})")
         raise
 
     from GH_IO.Serialization import GH_LooseChunk
