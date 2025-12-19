@@ -2,6 +2,7 @@ import argparse
 import base64
 import json
 import os
+import platform
 import re
 import sys
 import tempfile
@@ -9,9 +10,23 @@ import urllib.request, urllib.parse, urllib.error
 import zipfile
 from io import BytesIO
 
+if platform.system() == "Darwin":
+    # Set environment variable to point pythonnet to Rhino 8's .NET runtime
+    rhino_dotnet_base = "/Applications/Rhino 8.app/Contents/Frameworks/RhCore.framework/Versions/A/Resources/dotnet"
+    arch = platform.machine()
+    dotnet_root = os.path.join(rhino_dotnet_base, arch)
+    
+    if os.path.exists(dotnet_root):
+        print(f"Configuring pythonnet to use Rhino 8 .NET runtime from: {dotnet_root}")
+        os.environ["DOTNET_ROOT"] = dotnet_root
+        os.environ["PYTHONNET_RUNTIME"] = "coreclr"
+    else:
+        print(f"Error: Rhino 8 .NET runtime not found at {dotnet_root}")
+        sys.exit(1)
+
 import clr
 import System
-import System.IO
+# import System.IO
 
 
 SCRIPT_COMPONENT_GUID = System.Guid("c9b2d725-6f87-4b07-af90-bd9aefef68eb")
@@ -62,28 +77,34 @@ WIRE_DISPLAY = dict(
 )
 
 
-def fetch_ghio_lib(target_folder="temp"):
-    """Fetch the GH_IO.dll library from the NuGet packaging system."""
-    ghio_dll = "GH_IO.dll"
-    filename = "lib/net48/" + ghio_dll
+def find_local_gh_io():
+    """
+    Finds the GH_IO.dll already installed with Rhino 8.
+    """
+    system = platform.system()
+    
+    # 1. Define standard paths for Rhino 8
+    search_paths = []
+    
+    if system == "Windows":
+        # Standard Rhino 8 install path
+        search_paths.append(r"C:\Program Files\Rhino 8\System")
+        search_paths.append(r"C:\Program Files\Rhino 7\System") # Fallback
+        
+    elif system == "Darwin": # macOS
+        # Rhino 8 App Bundle paths (in order of preference)
+        base_path = "/Applications/Rhino 8.app/Contents/Frameworks/RhCore.framework/Versions/A/Resources"
+        search_paths.append(os.path.join(base_path, "ManagedPlugIns/GrasshopperPlugin.rhp"))
+        search_paths.append(os.path.join(base_path, "ref/net48"))
+        search_paths.append(base_path)
 
-    response = urllib.request.urlopen("https://www.nuget.org/api/v2/package/Grasshopper/")
-    dst_file = os.path.join(target_folder, ghio_dll)
-    zip_file = zipfile.ZipFile(BytesIO(response.read()))
-
-    with zip_file.open(filename, "r") as zipped_dll:
-        with open(dst_file, "wb") as fp:
-            fp.write(zipped_dll.read())
-
-    return dst_file
-
-
-def find_ghio_assembly(libdir):
-    for root, _dirs, files in os.walk(libdir):
-        for basename in files:
-            if basename.upper() == "GH_IO.DLL":
-                filename = os.path.join(root, basename)
-                return filename
+    # 2. Hunt for the DLL
+    for path in search_paths:
+        dll_path = os.path.join(path, "GH_IO.dll")
+        if os.path.exists(dll_path):
+            return dll_path
+            
+    raise FileNotFoundError("Could not find Rhino 8 installed locally. Cannot build components.")
 
 
 def bitmap_from_image_path(image_path):
@@ -217,8 +238,6 @@ def replace_templates(code, version, name, ghuser_name):
 
 
 def create_ghuser_component(source, target, version=None, prefix=None):
-    from GH_IO.Serialization import GH_LooseChunk
-
     icon, code, data = validate_source_bundle(source)
 
     code = replace_templates(code, version, data["name"], os.path.basename(target))
@@ -231,6 +250,7 @@ def create_ghuser_component(source, target, version=None, prefix=None):
 
     prefix = prefix or ""
 
+    # SCRIPT_COMPONENT_GUID = System.Guid("c9b2d725-6f87-4b07-af90-bd9aefef68eb")
     root = GH_LooseChunk("UserObject")
     root.SetGuid("BaseID", SCRIPT_COMPONENT_GUID)
     root.SetString("Name", prefix + data["name"])
@@ -247,8 +267,11 @@ def create_ghuser_component(source, target, version=None, prefix=None):
 
     ghpython_root = GH_LooseChunk("UserObject")
     ghpython_root.SetString("Description", data.get("description", ""))
-    bitmap_icon = System.Drawing.Bitmap.FromStream(System.IO.MemoryStream(icon))
-    ghpython_root.SetDrawingBitmap("IconOverride", bitmap_icon)
+    try:
+        bitmap_icon = System.Drawing.Bitmap.FromStream(System.IO.MemoryStream(icon))
+        ghpython_root.SetDrawingBitmap("IconOverride", bitmap_icon)
+    except Exception as e:
+        print(f"Warning: Failed to set IconOverride: {e}")
     ghpython_root.SetBoolean("UsingLibraryInputParam", False)
     ghpython_root.SetBoolean("UsingScriptInputParam", False)
     ghpython_root.SetBoolean("UsingStandardOutputParam", False)
@@ -346,12 +369,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("target", type=str, help="Target directory for ghuser files")
     parser.add_argument(
-        "--ghio",
-        type=str,
-        required=False,
-        help="Folder where the GH_IO.dll assembly is located. Defaults to ./lib",
-    )
-    parser.add_argument(
         "--version", type=str, required=False, help="Version to tag components"
     )
     parser.add_argument(
@@ -370,12 +387,7 @@ if __name__ == "__main__":
     if not os.path.isabs(targetdir):
         targetdir = os.path.abspath(targetdir)
 
-    if args.ghio is None:
-        libdir = tempfile.mkdtemp("ghio")
-        fetch_ghio_lib(libdir)
-    else:
-        libdir = os.path.abspath(args.ghio)
-    gh_io = find_ghio_assembly(libdir)
+    gh_io = find_local_gh_io()
     source_bundles = [
         d
         for d in os.listdir(sourcedir)
@@ -392,13 +404,65 @@ if __name__ == "__main__":
         os.mkdir(targetdir)
     print("[x]")
 
-    if not gh_io:
-        print("[-]  Cannot find GH_IO Assembly! Aborting.")
-        sys.exit(-1)
-
-    clr.AddReference(os.path.splitext(gh_io)[0])
+    print(f"Loading local Grasshopper IO: {gh_io}")
     
-    print("[x] GH_IO assembly: {}".format(gh_io))
+    # Ensure the directory containing GH_IO.dll is part of the probing paths
+    gh_io_dir = os.path.dirname(gh_io)
+    if gh_io_dir not in sys.path:
+        sys.path.append(gh_io_dir)
+
+    # On macOS, GH_IO depends on System.Drawing.Common which might not be loaded automatically
+    if platform.system() == "Darwin":
+        # Try to find System.Drawing.Common.dll in Resources folder
+        # gh_io is usually .../Resources/ManagedPlugIns/GrasshopperPlugin.rhp/GH_IO.dll
+        # We want .../Resources/System.Drawing.Common.dll
+        
+        # Go up 3 levels from dll file: 
+        # 1. dir of dll (GrasshopperPlugin.rhp)
+        # 2. ManagedPlugIns
+        # 3. Resources
+        
+        resources_dir = os.path.dirname(os.path.dirname(os.path.dirname(gh_io)))
+        
+        # Add Resources directory to sys.path
+        if resources_dir not in sys.path:
+            sys.path.append(resources_dir)
+
+        sdc_path = os.path.join(resources_dir, "System.Drawing.Common.dll")
+        if os.path.exists(sdc_path):
+            print(f"Loading System.Drawing.Common from: {sdc_path}")
+            try:
+                System.Reflection.Assembly.LoadFrom(sdc_path)
+                print("Loaded System.Drawing.Common via Reflection")
+            except Exception as e:
+                print(f"Failed to load System.Drawing.Common via Reflection: {e}")
+            clr.AddReference(sdc_path)
+
+    # Load via Reflection first to ensure it's in the context
+    try:
+        System.Reflection.Assembly.LoadFrom(gh_io)
+    except Exception as e:
+        print(f"Warning: Failed to load GH_IO via Reflection: {e}")
+
+    # Load the assembly by name once the path is added
+    # Use name instead of path, as path might confuse pythonnet module resolution
+    clr.AddReference("GH_IO")
+
+    # Import GH_IO module at global level
+    try:
+        import GH_IO
+        print("Successfully imported GH_IO")
+    except ImportError as e:
+        print(f"Failed to import GH_IO: {e}")
+        print("Loaded Assemblies:")
+        for asm in System.AppDomain.CurrentDomain.GetAssemblies():
+            if "GH_IO" in asm.FullName:
+                print(f" - {asm.FullName} (Location: {asm.Location})")
+        raise
+
+    from GH_IO.Serialization import GH_LooseChunk
+    # Make it available to create_ghuser_component
+    globals()['GH_LooseChunk'] = GH_LooseChunk
 
     print("Processing component bundles:")
     for d in source_bundles:
