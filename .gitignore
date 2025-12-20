@@ -130,3 +130,6 @@ dmypy.json
 
 # avoid temp folder
 temp/
+
+# per-user
+env_path.txt
