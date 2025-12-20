@@ -230,10 +230,13 @@ def replace_templates(code, version, name, ghuser_name):
     return code
 
 
-def create_ghuser_component(source, target, version=None, prefix=None):
+def create_ghuser_component(source, target, version=None, prefix=None, env_path=None):
     icon, code, data = validate_source_bundle(source)
 
     code = replace_templates(code, version, data["name"], os.path.basename(target))
+
+    if env_path:
+        code = "# env: {}\n{}".format(env_path, code)
 
     instance_guid = data.get("instanceGuid")
     if not instance_guid:
@@ -372,6 +375,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    env_path = None
+    env_path_file = "env_path.txt"
+    if os.path.exists(env_path_file):
+        with open(env_path_file, "r") as f:
+            env_path = f.read().strip()
+
     sourcedir = args.source
     if not os.path.isabs(sourcedir):
         sourcedir = os.path.abspath(sourcedir)
@@ -438,5 +447,5 @@ if __name__ == "__main__":
         source = os.path.join(sourcedir, d)
         target = os.path.join(targetdir, d + ".ghuser")
         print("  [ ] {}\r".format(d), end="")
-        create_ghuser_component(source, target, args.version, args.prefix)
+        create_ghuser_component(source, target, args.version, args.prefix, env_path)
         print("  [x] {} => {}".format(d, target))
