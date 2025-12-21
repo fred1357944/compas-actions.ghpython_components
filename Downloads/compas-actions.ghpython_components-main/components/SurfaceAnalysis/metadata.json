@@ -6,6 +6,7 @@
     "subcategory": "Analysis",
     "exposure": 2,
     "ghpython": {
+        "hideOutput": false,
         "isAdvancedMode": false,
         "inputParameters": [
             {

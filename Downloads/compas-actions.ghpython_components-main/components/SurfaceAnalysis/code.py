@@ -1,10 +1,11 @@
-
 import Rhino.Geometry as rg
 import System.Drawing as sd
 import math
 
 def create_hex_grid(surface, u_count, v_count):
+    print("Function called with U={}, V={}".format(u_count, v_count))
     if not surface:
+        print("Surface object is invalid or None inside function")
         return [], [], []
 
     u_domain = surface.Domain(0)
@@ -14,12 +15,10 @@ def create_hex_grid(surface, u_count, v_count):
     curvatures = []
     colors = []
     
-    # Simple UV mapping strategy for hexagonal staggering
-    # Normalized step sizes
+    # Simple UV mapping strategy
     u_step = (u_domain.Max - u_domain.Min) / u_count
     v_step = (v_domain.Max - v_domain.Min) / v_count
     
-    # Max curvature for normalization (dynamic would be better, but fixed for prototype)
     max_k = 0.01 
     min_k = -0.01
 
@@ -29,76 +28,90 @@ def create_hex_grid(surface, u_count, v_count):
             u = u_domain.Min + (i + 0.5) * u_step
             v = v_domain.Min + (j + 0.5) * v_step
             
-            # Offset every other row for hex effect
+            # Offset every other row
             if j % 2 == 1:
                 u += u_step * 0.5
             
-            if u > u_domain.Max: continue
+            # Boundary check
+            if u > u_domain.Max: 
+                continue
 
-            # Evaluate surface properties
-            pt = surface.PointAt(u, v)
-            curvature = surface.CurvatureAt(u, v)
-            
-            # Get Gaussian Curvature
-            k = curvature.Gaussian
-            curvatures.append(k)
-            
-            # Map curvature to color (Blue=Low, Red=High)
-            t = (k - min_k) / (max_k - min_k)
-            t = max(0.0, min(1.0, t))
-            r = int(255 * t)
-            b = int(255 * (1 - t))
-            colors.append(sd.Color.FromArgb(r, 0, b))
-
-            # Create a simple hexagon approximation around the center point
-            # In a real tool, this would be more complex topological handling
-            radius = min(u_step, v_step) * 0.5 # Approximation in parameter space
-            
-            hex_corners = []
-            for angle_deg in range(0, 360, 60):
-                angle = math.radians(angle_deg)
-                # Offset in UV space (naive mapping)
-                du = math.cos(angle) * radius
-                dv = math.sin(angle) * radius
+            # Evaluate
+            try:
+                pt = surface.PointAt(u, v)
+                curvature = surface.CurvatureAt(u, v)
                 
-                # Map back to 3D
-                u_local = u + du
-                v_local = v + dv
+                # Gaussian Curvature
+                if curvature:
+                    k = curvature.Gaussian
+                else:
+                    k = 0.0
+                curvatures.append(k)
                 
-                # Clamp to domain to avoid errors
-                u_local = max(u_domain.Min, min(u_domain.Max, u_local))
-                v_local = max(v_domain.Min, min(v_domain.Max, v_local))
+                # Color mapping
+                t = (k - min_k) / (max_k - min_k)
+                t = max(0.0, min(1.0, t))
+                r = int(255 * t)
+                b = int(255 * (1 - t))
+                colors.append(sd.Color.FromArgb(r, 0, b))
 
-                corner_pt = surface.PointAt(u_local, v_local)
-                hex_corners.append(corner_pt)
-            
-            # Close the loop
-            hex_corners.append(hex_corners[0])
-            hexagons.append(rg.PolylineCurve(hex_corners))
+                # Hexagon geometry
+                radius = min(u_step, v_step) * 0.5
+                hex_corners = []
+                for angle_deg in range(0, 360, 60):
+                    angle = math.radians(angle_deg)
+                    du = math.cos(angle) * radius
+                    dv = math.sin(angle) * radius
+                    
+                    u_local = u + du
+                    v_local = v + dv
+                    
+                    u_local = max(u_domain.Min, min(u_domain.Max, u_local))
+                    v_local = max(v_domain.Min, min(v_domain.Max, v_local))
 
+                    corner_pt = surface.PointAt(u_local, v_local)
+                    hex_corners.append(corner_pt)
+                
+                hex_corners.append(hex_corners[0])
+                hexagons.append(rg.PolylineCurve(hex_corners))
+            except Exception as e:
+                print("Error at grid {},{}: {}".format(i, j, e))
+                continue
+
+    print("Generated {} hexagons".format(len(hexagons)))
     return hexagons, curvatures, colors
 
-# Main execution
-# Safely get inputs from globals to avoid NameError
+# --- Main Execution ---
+print("--- Script Start ---")
+
+# 1. Fetch Inputs
 _surface = globals().get("Surface")
-_u_count = globals().get("U_Count")
-_v_count = globals().get("V_Count")
+_u = globals().get("U_Count")
+_v = globals().get("V_Count")
 
-if _surface and _u_count and _v_count:
-    # Need to handle the input being a wrapper or direct geometry depending on GH context
-    # In SDK mode, inputs are direct objects usually
-    
-    # Fix: Ensure U_Count and V_Count are integers
-    u_cnt = int(_u_count)
-    v_cnt = int(_v_count)
-    
-    # Call logic
-    # Note: In the provided componentizer, the code runs inside the component's SolveInstance or similar scope
-    # Accessing inputs directly as global variables
-    
-    Hexagons, Curvature, Colors = create_hex_grid(_surface, u_cnt, v_cnt)
+print("Input Type Surface: {}".format(type(_surface)))
+print("Input Value U: {}".format(_u))
+print("Input Value V: {}".format(_v))
 
+# 2. Validate and Execute
+if _surface and _u is not None and _v is not None:
+    try:
+        u_cnt = int(_u)
+        v_cnt = int(_v)
+        
+        # Check if surface is actually a Rhino Geometry or needs conversion
+        # (Sometimes TypeHint wraps it)
+        if hasattr(_surface, "Value"):
+            _surface = _surface.Value
+            
+        Hexagons, Curvature, Colors = create_hex_grid(_surface, u_cnt, v_cnt)
+    except Exception as e:
+        print("Execution Error: {}".format(e))
+        Hexagons = []
+        Curvature = []
+        Colors = []
 else:
+    print("Missing Inputs. Please connect Surface, U, and V.")
     Hexagons = []
     Curvature = []
     Colors = []
