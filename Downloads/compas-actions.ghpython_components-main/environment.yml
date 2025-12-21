@@ -1,0 +1,10 @@
+# environment.yml
+
+name: gh_timber
+dependencies:
+  - python=3.9
+  - networkx=3.2.1
+  - pip
+  - pip:
+    - pythonnet # For componenization
+    - . 

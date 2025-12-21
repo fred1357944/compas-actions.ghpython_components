@@ -1,0 +1,50 @@
+{
+    "name": "Surface Hex Analysis",
+    "nickname": "HexAnalyze",
+    "description": "Analyzes surface curvature and tessellates it into hexagonal patterns with structural property mapping.",
+    "category": "MyTools",
+    "subcategory": "Analysis",
+    "exposure": 2,
+    "ghpython": {
+        "isAdvancedMode": true,
+        "inputParameters": [
+            {
+                "name": "Surface",
+                "nickname": "S",
+                "description": "Base surface to analyze",
+                "typeHintID": "surface"
+            },
+            {
+                "name": "U_Count",
+                "nickname": "U",
+                "description": "Number of divisions in U direction",
+                "typeHintID": "int",
+                "optional": false
+            },
+            {
+                "name": "V_Count",
+                "nickname": "V",
+                "description": "Number of divisions in V direction",
+                "typeHintID": "int",
+                "optional": false
+            }
+        ],
+        "outputParameters": [
+            {
+                "name": "Hexagons",
+                "nickname": "H",
+                "description": "Generated hexagonal cells"
+            },
+            {
+                "name": "Curvature",
+                "nickname": "K",
+                "description": "Gaussian curvature at cell centers"
+            },
+            {
+                "name": "Colors",
+                "nickname": "C",
+                "description": "Analysis visualization colors"
+            }
+        ]
+    }
+}
