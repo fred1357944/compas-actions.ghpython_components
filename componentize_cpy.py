@@ -88,8 +88,7 @@ def find_local_gh_io():
     
     if system == "Windows":
         # Standard Rhino 8 install path
-        search_paths.append(r"C:\Program Files\Rhino 8\System")
-        search_paths.append(r"C:\Program Files\Rhino 7\System") # Fallback
+        search_paths.append(r"C:\Program Files\Rhino 8\Plug-ins\Grasshopper")
         
     elif system == "Darwin": # macOS
         # Rhino 8 App Bundle paths (in order of preference)
