@@ -79,19 +79,24 @@ def create_hex_grid(surface, u_count, v_count):
     return hexagons, curvatures, colors
 
 # Main execution
-if Surface and U_Count and V_Count:
+# Safely get inputs from globals to avoid NameError
+_surface = globals().get("Surface")
+_u_count = globals().get("U_Count")
+_v_count = globals().get("V_Count")
+
+if _surface and _u_count and _v_count:
     # Need to handle the input being a wrapper or direct geometry depending on GH context
     # In SDK mode, inputs are direct objects usually
     
     # Fix: Ensure U_Count and V_Count are integers
-    u_cnt = int(U_Count)
-    v_cnt = int(V_Count)
+    u_cnt = int(_u_count)
+    v_cnt = int(_v_count)
     
     # Call logic
     # Note: In the provided componentizer, the code runs inside the component's SolveInstance or similar scope
     # Accessing inputs directly as global variables
     
-    Hexagons, Curvature, Colors = create_hex_grid(Surface, u_cnt, v_cnt)
+    Hexagons, Curvature, Colors = create_hex_grid(_surface, u_cnt, v_cnt)
 
 else:
     Hexagons = []
