@@ -11,15 +11,26 @@ import zipfile
 from io import BytesIO
 
 if platform.system() == "Darwin":
-    # Set environment variable to point pythonnet to Rhino 8's .NET runtime
+    # Use Rhino .NET 8 (compatible with GH_IO.dll)
     rhino_dotnet_base = "/Applications/Rhino 8.app/Contents/Frameworks/RhCore.framework/Versions/A/Resources/dotnet"
     arch = platform.machine()
     dotnet_root = os.path.join(rhino_dotnet_base, arch)
-    
+
     if os.path.exists(dotnet_root):
         print(f"Configuring pythonnet to use Rhino 8 .NET runtime from: {dotnet_root}")
-        os.environ["DOTNET_ROOT"] = dotnet_root
-        os.environ["PYTHONNET_RUNTIME"] = "coreclr"
+
+        # Set runtime config before importing pythonnet
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        runtime_config = os.path.join(script_dir, "python.runtimeconfig.json")
+        if os.path.exists(runtime_config):
+            os.environ["PYTHONNET_RUNTIME_CONFIG"] = runtime_config
+
+        # Import pythonnet and set runtime manually
+        from pythonnet import set_runtime
+        from clr_loader import get_coreclr
+
+        rt = get_coreclr(runtime_config=runtime_config, dotnet_root=dotnet_root)
+        set_runtime(rt)
     else:
         print(f"Error: Rhino 8 .NET runtime not found at {dotnet_root}")
         sys.exit(1)
@@ -417,7 +428,7 @@ if __name__ == "__main__":
         # GH_IO is usually .../Resources/ManagedPlugIns/GrasshopperPlugin.rhp/GH_IO.dll
         # We want .../Resources/System.Drawing.Common.dll
         resources_dir = os.path.dirname(os.path.dirname(os.path.dirname(gh_io)))
-        
+
         # Add Resources directory to sys.path
         if resources_dir not in sys.path:
             sys.path.append(resources_dir)
