@@ -16,7 +16,7 @@ conda activate gh_timber
 python componentize_cpy.py components dist --version "0.1.0"
 ```
 
-copy the generated files in `dist` to your Grasshopper components folder.
+copy the generated files in `dist` to your Grasshopper userObjects folder.
 
 ## test
 
