@@ -133,3 +133,6 @@ temp/
 
 # per-user
 env_path.txt
+
+# Claude Code local settings
+.claude/

@@ -148,28 +148,89 @@ gh_comp
 
 ## 故障排除
 
-### conda activate 無效
-如果執行 `conda activate gh_timber` 後 `python` 仍指向系統 Python：
+### ModuleNotFoundError: No module named 'pythonnet'
 
-**臨時解決方案**：
-使用完整路徑執行：
+**原因**：
+- Shell 的 `python` alias 指向系統 Python，而非 conda 環境的 Python
+- 即使執行 `conda activate gh_timber`，仍使用錯誤的 Python
+
+**解決方案 1: 啟用 conda 自動初始化（推薦）**
+
+1. 執行 conda init：
+```bash
+conda init zsh  # 如果使用 bash，改為 conda init bash
+```
+
+2. 編輯 `~/.zshrc`（或 `~/.bash_profile`），找到被註解的 conda 初始化區塊：
+```bash
+# >>> conda initialize >>> (DISABLED - use 'conda-init' alias instead)
+```
+
+3. 取消所有註解，改為：
+```bash
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/opt/homebrew/Caskroom/miniconda/base/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh" ]; then
+        . "/opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
+    else
+        export PATH="/opt/homebrew/Caskroom/miniconda/base/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+```
+
+4. 重新載入配置：
+```bash
+source ~/.zshrc  # 或 source ~/.bash_profile
+```
+
+5. 重新啟動終端機，然後正常使用：
+```bash
+conda activate gh_timber
+python componentize_cpy.py components dist --version "0.1.0"
+```
+
+**解決方案 2: 設定便捷 Alias**
+
+在 `~/.zshrc` 或 `~/.bash_profile` 末尾添加：
+```bash
+# Grasshopper component builder alias
+alias gh_comp='cd /Users/laihongyi/Downloads/compas-actions.ghpython_components && /opt/homebrew/Caskroom/miniconda/base/envs/gh_timber/bin/python componentize_cpy.py components dist --version "0.1.0"'
+```
+
+重新載入並使用：
+```bash
+source ~/.zshrc
+gh_comp  # 一鍵執行組件化
+```
+
+**解決方案 3: 使用完整路徑（臨時）**
 ```bash
 /opt/homebrew/Caskroom/miniconda/base/envs/gh_timber/bin/python componentize_cpy.py components dist --version "0.1.0"
 ```
 
-**永久解決方案**：
-```bash
-conda init
-# 然後重啟終端機
-```
+### conda activate 無效
 
-### ModuleNotFoundError: No module named 'clr'
-確保使用 conda 環境的 Python：
+**檢查當前 Python 路徑**：
 ```bash
 which python  # 應該顯示 conda 環境路徑
+# 正確: /opt/homebrew/Caskroom/miniconda/base/envs/gh_timber/bin/python
+# 錯誤: /usr/bin/python 或 python: aliased to python3
 ```
 
-如果不對，使用完整路徑。
+如果顯示錯誤路徑，請參考上方「ModuleNotFoundError: No module named 'pythonnet'」的解決方案。
+
+### ModuleNotFoundError: No module named 'clr'
+
+**原因**：使用了錯誤的 Python 解釋器
+
+**解決方案**：
+確保使用 conda 環境的 Python（參考上方解決方案）。
 
 ### .NET Runtime 錯誤
 確認 Rhino 8 已安裝且路徑正確：
