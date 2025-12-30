@@ -136,3 +136,6 @@ env_path.txt
 
 # Claude Code local settings
 .claude/
+
+# Gemini clipboard
+.gemini-clipboard/

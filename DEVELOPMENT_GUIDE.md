@@ -735,8 +735,208 @@ compas-actions.ghpython_components/
 
 ---
 
+## 進階技巧：熱重載機制
+
+### 什麼是熱重載？
+
+熱重載（Hot Reload）讓你在開發過程中修改代碼後，無需重啟 Grasshopper 或重新生成 .ghuser 文件，就能立即看到效果。
+
+### 實作方式
+
+#### 1. 分離邏輯到外部套件
+
+**傳統方式（無熱重載）**：
+```python
+# components/MyComponent/code.py
+class MyComponent(component):
+    def RunScript(self, x, y):
+        # 所有邏輯都寫在這裡（155+ 行）
+        result = x + y
+        return result
+```
+
+修改邏輯 → 需要 `gh_comp` → 需要重啟 GH → 才能看到效果 ❌
+
+**熱重載方式**：
+```python
+# components/MyComponent/code.py
+import my_logic_package
+import importlib
+
+# 強制重載套件
+importlib.reload(my_logic_package)
+
+class MyComponent(component):
+    def RunScript(self, x, y):
+        # 調用外部套件
+        result = my_logic_package.calculate(x, y)
+        return result
+```
+
+修改邏輯 → 在 GH 中重新計算 → 立即看到效果 ✅
+
+#### 2. YOLO UDP Receiver 實例
+
+**套件結構**：
+```
+gh_yolo_udp/
+├── __init__.py
+└── gh_yolo_udp.py    # 核心邏輯（196 行）
+```
+
+**組件代碼**（簡化到 31 行）：
+```python
+# components/YOLO_UDP_Receiver/code.py
+from ghpythonlib.componentbase import executingcomponent as component
+import gh_yolo_udp
+import gh_yolo_udp.gh_yolo_udp
+import importlib
+
+# 強制重載（重要！）
+importlib.reload(gh_yolo_udp.gh_yolo_udp)  # 先重載子模組
+importlib.reload(gh_yolo_udp)              # 再重載主模組
+
+class YOLOUDPReceiver(component):
+    def RunScript(self, enable, port, target_joint):
+        self.Message = 'v{{version}}'
+
+        # 所有邏輯都在外部套件中
+        result = gh_yolo_udp.get_pose_data(enable, port, target_joint)
+
+        return (
+            result["point"],
+            result["x"],
+            result["y"],
+            result["z"],
+            result["all_points"],
+            result["joint_names"],
+            result["message"],
+            result["debug"]
+        )
+```
+
+**外部套件**（可以熱重載）：
+```python
+# gh_yolo_udp/gh_yolo_udp.py
+def get_pose_data(enable, port, target_joint):
+    """核心邏輯函數 - 可以隨時修改"""
+
+    # 所有複雜邏輯都在這裡
+    # Socket 處理、JSON 解析、座標轉換等
+
+    # 修改這裡的代碼後，只需在 GH 中重新計算組件即可！
+    scale_factor = 100.0  # 修改縮放係數
+    x = kp['x'] * scale_factor
+
+    return {
+        "point": point,
+        "x": x,
+        "y": y,
+        ...
+    }
+```
+
+#### 3. 開發流程對比
+
+**無熱重載**：
+```bash
+1. 修改 components/MyComponent/code.py
+2. 執行 gh_comp（重新生成 .ghuser）
+3. 複製到 UserObjects 資料夾
+4. 重啟 Grasshopper
+5. 測試
+```
+⏱️ **每次修改需要 2-5 分鐘**
+
+**有熱重載**：
+```bash
+1. 修改 my_logic_package/logic.py
+2. 在 Grasshopper 中按 F5（或重新計算組件）
+3. 測試
+```
+⏱️ **每次修改需要 1-2 秒**
+
+#### 4. 熱重載最佳實踐
+
+**DO ✅**：
+- 將複雜邏輯分離到外部套件
+- 在組件 code.py 中使用 `importlib.reload()`
+- 先重載子模組，再重載主模組
+- 使用模組級變數保持狀態（如 socket）
+
+**DON'T ❌**：
+- 不要把所有代碼寫在 code.py 中
+- 不要忘記 reload 子模組
+- 不要在重載時依賴舊的類實例
+
+#### 5. 重載順序很重要
+
+```python
+# ❌ 錯誤順序
+importlib.reload(my_package)
+importlib.reload(my_package.submodule)  # 太晚了！
+
+# ✅ 正確順序
+importlib.reload(my_package.submodule)  # 先重載子模組
+importlib.reload(my_package)            # 再重載主模組
+```
+
+#### 6. 狀態管理
+
+使用模組級變數保持狀態：
+```python
+# gh_yolo_udp/gh_yolo_udp.py
+_udp_socket = None  # 模組級變數
+_keypoints = {}
+
+def get_pose_data(enable, port, target_joint):
+    global _udp_socket, _keypoints
+
+    # 重載時這些變數會重置為 None/{}
+    # 所以需要檢查並重新初始化
+    if _udp_socket is None and enable:
+        _udp_socket = create_socket()
+```
+
+#### 7. 除錯技巧
+
+在除錯訊息中顯示套件路徑：
+```python
+debug_lines.append("Loaded from: " + __file__)
+# 輸出: Loaded from: /path/to/gh_yolo_udp/gh_yolo_udp.py
+```
+
+這樣你可以確認是否載入了正確版本的代碼。
+
+### 優勢總結
+
+| 特性 | 傳統方式 | 熱重載方式 |
+|------|---------|-----------|
+| 修改後重新測試時間 | 2-5 分鐘 | 1-2 秒 |
+| 需要重啟 GH | ✅ 需要 | ❌ 不需要 |
+| 需要重新生成 .ghuser | ✅ 需要 | ❌ 不需要 |
+| code.py 複雜度 | 高（155+ 行）| 低（31 行）|
+| 可測試性 | 困難 | 容易 |
+| 開發效率 | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+### 何時使用熱重載？
+
+**適合**：
+- ✅ 開發階段，需要頻繁調整邏輯
+- ✅ 複雜組件（100+ 行代碼）
+- ✅ 需要除錯和測試的組件
+- ✅ 團隊協作開發
+
+**不適合**：
+- ❌ 簡單組件（< 50 行）
+- ❌ 已經穩定的生產組件
+- ❌ 不需要頻繁修改的組件
+
+---
+
 ## 更新日誌
 
+- **2025-12-30**: 新增熱重載機制說明與 gh_yolo_udp 範例
 - **2025-12-21**: 初始版本，包含 YOLO UDP Receiver 範例
 - 添加完整的開發流程說明
 - 添加常見問題解答
@@ -744,5 +944,5 @@ compas-actions.ghpython_components/
 ---
 
 **作者**: Claude Code
-**最後更新**: 2025-12-21
+**最後更新**: 2025-12-30
 **專案版本**: 0.1.0
