@@ -1,0 +1,84 @@
+{
+  "name": "GH Timber Components",
+  "version": "0.1.0",
+  "author": "Your Name",
+  "description": "Collection of Grasshopper components for timber design and analysis",
+  "components": [
+    {
+      "name": "Test_GhTimber",
+      "nickname": "Timber",
+      "guid": "cdd47086-f912-4b77-825b-6b79c3aaecc1",
+      "version": "0.1.0",
+      "category": "GhTimber",
+      "subcategory": "Utilities",
+      "ghuser_filename": "Test_GhTimber.ghuser",
+      "inputs": [
+        {"name": "x", "type": "float", "optional": true},
+        {"name": "y", "type": "float", "optional": true},
+        {"name": "z", "type": "float", "optional": true}
+      ],
+      "outputs": [
+        {"name": "result", "type": "float"}
+      ]
+    },
+    {
+      "name": "YOLO_UDP_Receiver",
+      "nickname": "YOLO_UDP",
+      "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "version": "0.1.0",
+      "category": "YOLO",
+      "subcategory": "Network",
+      "ghuser_filename": "YOLO_UDP_Receiver.ghuser",
+      "inputs": [
+        {"name": "port", "type": "int", "optional": true},
+        {"name": "target_joint", "type": "str", "optional": true}
+      ],
+      "outputs": [
+        {"name": "point", "type": "Point3d"},
+        {"name": "x", "type": "float"},
+        {"name": "y", "type": "float"},
+        {"name": "z", "type": "float"},
+        {"name": "all_points", "type": "list"},
+        {"name": "joint_names", "type": "list"},
+        {"name": "message", "type": "str"},
+        {"name": "debug", "type": "str"}
+      ]
+    },
+    {
+      "name": "Swarm_Dynamics",
+      "nickname": "Swarm",
+      "guid": "b5c6d7e8-f9a0-1234-bcde-567890abcdef",
+      "version": "0.1.0",
+      "category": "Physics",
+      "subcategory": "Simulation",
+      "ghuser_filename": "Swarm_Dynamics.ghuser",
+      "inputs": [
+        {"name": "N", "type": "int", "optional": true},
+        {"name": "Prec", "type": "int", "optional": true},
+        {"name": "Speed", "type": "float", "optional": true},
+        {"name": "Amp", "type": "float", "optional": true},
+        {"name": "Knn", "type": "int", "optional": true},
+        {"name": "Radius", "type": "float", "optional": true},
+        {"name": "Stiff", "type": "float", "optional": true},
+        {"name": "Damp", "type": "float", "optional": true},
+        {"name": "Dt", "type": "float", "optional": true},
+        {"name": "Act", "type": "float", "optional": true},
+        {"name": "Seed", "type": "int", "optional": true},
+        {"name": "Box", "type": "box", "optional": true},
+        {"name": "Start", "type": "bool", "optional": true},
+        {"name": "Reset", "type": "bool", "optional": true}
+      ],
+      "outputs": [
+        {"name": "L", "type": "list"},
+        {"name": "Links", "type": "list"},
+        {"name": "Nodes", "type": "list"},
+        {"name": "MidPts", "type": "list"},
+        {"name": "Labels", "type": "list"},
+        {"name": "Lengths", "type": "list"},
+        {"name": "t", "type": "float"},
+        {"name": "Frame", "type": "int"},
+        {"name": "out", "type": "str"}
+      ]
+    }
+  ]
+}
