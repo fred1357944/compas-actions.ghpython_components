@@ -7,9 +7,23 @@
     "exposure": 2,
     "instanceGuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "ghpython": {
+        "isAdvancedMode": true,
         "marshalGuids": true,
         "iconDisplay": 2,
         "inputParameters": [
+            {
+                "name": "enable",
+                "nickname": "on",
+                "description": "Enable/Disable UDP receiver",
+                "optional": true,
+                "allowTreeAccess": false,
+                "showTypeHints": true,
+                "scriptParamAccess": "item",
+                "wireDisplay": "default",
+                "sourceCount": 0,
+                "typeHintID": "bool",
+                "simplify": false
+            },
             {
                 "name": "port",
                 "nickname": "port",
