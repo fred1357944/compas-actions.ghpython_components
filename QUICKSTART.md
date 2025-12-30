@@ -1,30 +1,75 @@
-# Quick Start Guide - 重啟後快速開始
+# Quick Start Guide - 快速開始指南
 
-## 從零開始（電腦重啟後）
+本指南幫助你快速上手 compas-actions.ghpython_components 專案。
 
-### 1. 開啟終端機
+## 📋 目錄
+
+1. [初次設置](#初次設置)
+2. [每日開發流程](#每日開發流程)
+3. [可用組件](#可用組件)
+4. [常用指令](#常用指令)
+
+---
+
+## 初次設置
+
+### 1. Clone 專案
+
+```bash
+git clone https://github.com/fred1357944/compas-actions.ghpython_components.git
+cd compas-actions.ghpython_components
+```
+
+### 2. 建立 Conda 環境
+
+```bash
+# 創建環境
+conda env create -f environment.yml
+
+# 啟動環境
+conda activate gh_timber
+```
+
+### 3. 初始化 Conda（如果需要）
+
+```bash
+# 如果 conda activate 無效，執行
+conda init zsh  # 或 conda init bash
+
+# 然後重啟終端機，或執行
+source ~/.zshrc
+```
+
+### 4. 設定便捷 Alias（推薦）
+
+在 `~/.zshrc` 或 `~/.bash_profile` 中已自動設定：
+
+```bash
+alias gh_comp='cd /Users/laihongyi/Downloads/compas-actions.ghpython_components && /opt/homebrew/Caskroom/miniconda/base/envs/gh_timber/bin/python componentize_cpy.py components dist --version "0.1.0"'
+```
+
+重新載入：
+```bash
+source ~/.zshrc
+```
+
+---
+
+## 每日開發流程
+
+### 從零開始（電腦重啟後）
+
+#### 1. 開啟終端機
 
 打開 Terminal.app
 
-### 2. 初始化 Conda（首次或重啟後）
+#### 2. 進入專案資料夾
 
 ```bash
-# 如果 conda 指令找不到，執行這個
-conda init
-
-# 然後重啟終端機，或執行
-source ~/.zshrc  # 如果使用 zsh
-# 或
-source ~/.bash_profile  # 如果使用 bash
+cd /path/to/compas-actions.ghpython_components
 ```
 
-### 3. 進入專案資料夾
-
-```bash
-cd /Users/laihongyi/Downloads/compas-actions.ghpython_components-main
-```
-
-### 4. 啟動 Conda 環境
+#### 3. 啟動 Conda 環境
 
 ```bash
 conda activate gh_timber
@@ -32,30 +77,155 @@ conda activate gh_timber
 
 你應該會看到終端機提示符前面出現 `(gh_timber)`
 
-### 5. 開始開發
+#### 4. 開始開發
 
-#### 開發流程
+**方法 1: 使用 Alias（最快）**
+```bash
+gh_comp
+```
 
-1. **編輯組件**
-   - 在 `components/` 資料夾中修改你的 Python 組件代碼
+**方法 2: 完整指令**
+```bash
+python componentize_cpy.py components dist --version "0.1.0"
+```
 
-2. **產生 .ghuser 文件**
-   ```bash
-   /opt/homebrew/Caskroom/miniconda/base/envs/gh_timber/bin/python componentize_cpy.py components dist --version "0.1.0"
-   ```
+### 開發工作流程
 
-   或使用簡短版本（需先設定 alias，見下方）：
-   ```bash
-   gh_comp
-   ```
+```
+1. 編輯組件 → 2. 構建 → 3. 安裝 → 4. 測試
+    ↓             ↓          ↓         ↓
+components/   gh_comp    UserObjects  Grasshopper
+```
 
-3. **複製到 Grasshopper**
-   - 在 Grasshopper 中：`File > Special Folders > User Object Folder`
-   - 將 `dist/*.ghuser` 複製進去
-   - 重啟 Grasshopper
+#### 步驟詳解
 
-4. **測試組件**
-   - 在 Grasshopper 中找到你的組件並測試
+**1. 編輯組件**
+```bash
+# 修改現有組件
+code components/YOLO_UDP_Receiver/code.py
+
+# 或創建新組件
+mkdir components/MyNewComponent
+cp components/YOLO_UDP_Receiver/icon.png components/MyNewComponent/
+# 創建 code.py 和 metadata.json
+```
+
+**2. 構建組件**
+```bash
+gh_comp
+# 或
+python componentize_cpy.py components dist --version "0.1.0"
+```
+
+**3. 安裝到 Grasshopper**
+- 在 Grasshopper: `File > Special Folders > User Object Folder`
+- 複製 `dist/*.ghuser` 到該資料夾
+- 重啟 Grasshopper
+
+**4. 測試組件**
+- 在 Grasshopper 中找到組件
+- 拖放到畫布測試
+
+---
+
+## 可用組件
+
+本專案目前包含 4 個組件：
+
+### 1. Component Updater (v0.1.0)
+- **分類**: Utilities > Version
+- **功能**: 版本檢查與管理工具
+- **特色**: 掃描畫布組件、比對版本、偵測參數變化
+- **文檔**: [components/Component_Updater/README.md](components/Component_Updater/README.md)
+
+### 2. Swarm Dynamics (v0.1.0)
+- **分類**: Physics > Simulation
+- **功能**: 粒子群體動力學模擬系統
+- **特色**: 彈簧物理、旋轉效果、呼吸效果、K-近鄰連接
+- **文檔**: [components/Swarm_Dynamics/README.md](components/Swarm_Dynamics/README.md)
+
+### 3. YOLO UDP Receiver (v0.1.0)
+- **分類**: YOLO > Network
+- **功能**: YOLOv8 姿態偵測 UDP 數據接收器
+- **特色**: 17 個關鍵點、Point3d 輸出、無阻塞 Socket
+- **配套**: [originalcode/opencv2gh_yolov8.py](originalcode/opencv2gh_yolov8.py)
+
+### 4. Test GhTimber (v0.1.0)
+- **分類**: GhTimber > Utilities
+- **功能**: 測試與範例組件
+- **特色**: 演示基本組件結構
+
+📖 **完整組件目錄**: [COMPONENT_CATALOG.md](COMPONENT_CATALOG.md)
+
+---
+
+## 常用指令
+
+### Conda 環境管理
+
+```bash
+# 查看所有環境
+conda env list
+
+# 啟動環境
+conda activate gh_timber
+
+# 退出環境
+conda deactivate
+
+# 更新環境（當 environment.yml 修改後）
+conda env update -f environment.yml
+```
+
+### 構建組件
+
+```bash
+# 使用 alias（推薦）
+gh_comp
+
+# 完整指令
+python componentize_cpy.py components dist --version "0.1.0"
+
+# 指定版本號
+python componentize_cpy.py components dist --version "0.2.0"
+
+# 查看生成的文件
+ls -lh dist/
+```
+
+### 版本檢查
+
+```bash
+# 檢查 Python 版本和路徑
+which python
+python --version
+
+# 檢查已安裝的套件
+conda list
+
+# 檢查 pythonnet 是否正確安裝
+python -c "from pythonnet import set_runtime; print('pythonnet OK')"
+```
+
+### Git 操作
+
+```bash
+# 查看狀態
+git status
+
+# 查看最近的 commits
+git log --oneline -10
+
+# 查看變更
+git diff
+
+# 提交變更
+git add components/MyComponent/
+git commit -m "新增：MyComponent 組件"
+git push
+```
+
+---
 
 ## 設定快捷指令（一次性設定）
 
@@ -255,4 +425,64 @@ gh_comp  # 或
 
 ---
 
-最後更新：2025-12-21
+## 進階主題
+
+### 版本管理
+
+使用 Component Updater 檢查版本：
+
+```
+1. 在 Grasshopper 中放置 Component Updater 組件
+2. check = True
+3. 查看 report 輸出
+```
+
+詳見 [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)
+
+### 團隊協作
+
+多人協作最佳實踐：
+
+```bash
+# 同步最新代碼
+git pull origin main
+
+# 創建功能分支
+git checkout -b feature/my-new-component
+
+# 開發...
+gh_comp
+
+# 提交
+git add .
+git commit -m "新增：MyComponent"
+git push origin feature/my-new-component
+
+# 在 GitHub 創建 Pull Request
+```
+
+詳見 [TEAM_COLLABORATION.md](TEAM_COLLABORATION.md)
+
+### 開發新組件
+
+完整教學請參閱：
+- [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) - 組件開發指南
+- [COMPONENT_CATALOG.md](COMPONENT_CATALOG.md) - 組件範例
+
+---
+
+## 相關文檔
+
+- **[README.md](README.md)** - 專案說明
+- **[DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md)** - 開發指南
+- **[TEAM_COLLABORATION.md](TEAM_COLLABORATION.md)** - 團隊協作
+- **[VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)** - 版本管理
+- **[COMPONENT_CATALOG.md](COMPONENT_CATALOG.md)** - 組件目錄
+- **[CHANGELOG.md](CHANGELOG.md)** - 變更日誌
+- **[SETUP_FIXES.md](SETUP_FIXES.md)** - 故障排除
+
+---
+
+**最後更新**: 2025-12-30
+**維護者**: Claude Code
+**專案**: https://github.com/fred1357944/compas-actions.ghpython_components
