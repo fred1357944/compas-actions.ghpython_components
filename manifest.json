@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "GH Timber Components",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "GH Timber Team",
   "description": "Collection of Grasshopper components for timber design, physics simulation, and computer vision integration",
   "repository": "https://github.com/fred1357944/compas-actions.ghpython_components",
